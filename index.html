@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Címke nyomtató – 70×36 &amp; 105×148</title>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <style>
     :root {
       --page-w: 210mm;
@@ -401,6 +402,52 @@
 
     #view-ship .ship-label.empty { opacity: 0.35; }
 
+    .mode-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .mode-tabs button {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #f4f4f4;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .mode-tabs button.active {
+      background: #111;
+      color: #fff;
+      border-color: #111;
+    }
+
+    .ship-mode { display: none; }
+    .ship-mode.active { display: block; }
+
+    #s-pdfPreview {
+      width: var(--page-w);
+      height: var(--page-h);
+      border: 0;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,.15);
+    }
+
+    .pdf-slot-list {
+      display: grid;
+      gap: 6px;
+      margin: 10px 0;
+      font-size: 12px;
+    }
+
+    .pdf-slot-list div {
+      padding: 6px 8px;
+      background: #f4f4f4;
+      border-radius: 4px;
+    }
+
     @media print {
       body { background: #fff; }
       .topnav,
@@ -542,40 +589,57 @@
       <label>Bal (mm)<input id="s-marginLeft" type="number" step="0.1" value="0" /></label>
       <label>Rés X (mm)<input id="s-gapX" type="number" step="0.1" value="0" /></label>
       <label>Rés Y (mm)<input id="s-gapY" type="number" step="0.1" value="0.5" /></label>
-      <button type="button" id="s-btnPreview">Frissít</button>
-      <button type="button" class="primary" id="s-btnPrint">Nyomtatás</button>
-      <label class="file-btn">
-        CSV betöltés
-        <input id="s-csvFile" type="file" accept=".csv,text/csv,text/plain" hidden />
-      </label>
-      <p class="hint">Futár cím / címke · 105×148 mm (A6) · 4 db / A4. Parcely PDF-et külön is nyomtathatsz erre az etikettre.</p>
+      <button type="button" id="s-btnBuildPdf">PDF összerakás</button>
+      <button type="button" class="primary" id="s-btnDownloadPdf">PDF letöltés</button>
+      <button type="button" id="s-btnPrintPdf">Nyomtatás</button>
+      <p class="hint">Parcely/GLS/Foxpost PDF → 4× A6 egy A4 etikettre. Max 4 oldal / feltöltés.</p>
     </div>
 
     <div class="workspace">
       <section class="editor">
-        <h2>Címkék (1–4) · bal felül → jobb felül → bal alul → jobb alul</h2>
-        <div id="s-fields"></div>
+        <div class="mode-tabs">
+          <button type="button" class="active" data-ship-mode="pdf">Parcely PDF</button>
+          <button type="button" data-ship-mode="manual">Kézi cím / CSV</button>
+        </div>
 
-        <div class="bulk">
-          <h2>Gyors beillesztés</h2>
-          <p class="muted" style="margin:0 0 8px;">
-            Egy címke = egy blokk, üres sorral elválasztva.<br />
-            Vagy CSV: <code>név;sor1;sor2;sor3;meta</code>
-          </p>
-          <textarea id="s-bulk" placeholder="Kovács Anna
+        <div class="ship-mode active" id="ship-mode-pdf">
+          <h2>Futár PDF → 4-up A4</h2>
+          <p class="muted">Tölts fel 1–4 Parcely (vagy más futár) címke-PDF-et. Egy többoldalas PDF első 4 oldala is megy.</p>
+          <div class="field">
+            PDF fájlok
+            <input id="s-pdfFiles" type="file" accept="application/pdf,.pdf" multiple />
+          </div>
+          <div class="pdf-slot-list" id="s-pdfSlots">
+            <div>1. üres</div><div>2. üres</div><div>3. üres</div><div>4. üres</div>
+          </div>
+          <p class="muted" id="s-pdfStatus">Nincs még összerakott PDF.</p>
+        </div>
+
+        <div class="ship-mode" id="ship-mode-manual">
+          <h2>Címkék (1–4) · bal felül → jobb felül → bal alul → jobb alul</h2>
+          <div id="s-fields"></div>
+          <div class="bulk">
+            <h2>Gyors beillesztés</h2>
+            <p class="muted" style="margin:0 0 8px;">
+              Egy címke = egy blokk, üres sorral elválasztva.<br />
+              Vagy CSV: <code>név;sor1;sor2;sor3;meta</code>
+            </p>
+            <textarea id="s-bulk" placeholder="Kovács Anna
 1052 Budapest, Váci u. 1.
 +36 30 123 4567
-Rendelés #1042
-
-Nagy Péter
-9021 Győr, Baross út 10.
-Foxpost automata
-#1043"></textarea>
-          <button type="button" id="s-btnApplyBulk">Beillesztés alkalmazása</button>
+Rendelés #1042"></textarea>
+            <button type="button" id="s-btnApplyBulk">Beillesztés alkalmazása</button>
+            <label class="file-btn" style="display:inline-block;margin-top:8px;">
+              CSV betöltés
+              <input id="s-csvFile" type="file" accept=".csv,text/csv,text/plain" hidden />
+            </label>
+            <button type="button" id="s-btnPrintManual" style="margin-top:8px;">Kézi lap nyomtatása</button>
+          </div>
         </div>
       </section>
 
       <div class="sheet-wrap">
+        <iframe id="s-pdfPreview" title="PDF előnézet" hidden></iframe>
         <div class="sheet" id="s-sheet">
           <div class="ship-label empty" data-i="0"></div>
           <div class="ship-label empty" data-i="1"></div>
@@ -793,6 +857,17 @@ Foxpost automata
     const sFieldsEl = document.getElementById("s-fields");
     const sSheetEl = document.getElementById("s-sheet");
     const shipRoot = document.getElementById("view-ship");
+    const sPdfPreview = document.getElementById("s-pdfPreview");
+    const sPdfStatus = document.getElementById("s-pdfStatus");
+    const sPdfSlots = document.getElementById("s-pdfSlots");
+
+    let shipPdfBytes = null;
+    let shipPdfUrl = null;
+    let pendingPdfFiles = [];
+
+    function mmToPt(mm) {
+      return (mm * 72) / 25.4;
+    }
 
     function sApplyLayout() {
       shipRoot.style.setProperty("--margin-top", document.getElementById("s-marginTop").value + "mm");
@@ -800,6 +875,156 @@ Foxpost automata
       shipRoot.style.setProperty("--gap-x", document.getElementById("s-gapX").value + "mm");
       shipRoot.style.setProperty("--gap-y", document.getElementById("s-gapY").value + "mm");
     }
+
+    function setShipMode(mode) {
+      document.querySelectorAll("[data-ship-mode]").forEach((b) => {
+        b.classList.toggle("active", b.dataset.shipMode === mode);
+      });
+      document.getElementById("ship-mode-pdf").classList.toggle("active", mode === "pdf");
+      document.getElementById("ship-mode-manual").classList.toggle("active", mode === "manual");
+      if (mode === "pdf" && shipPdfUrl) {
+        sPdfPreview.hidden = false;
+        sSheetEl.style.display = "none";
+      } else if (mode === "manual") {
+        sPdfPreview.hidden = true;
+        sSheetEl.style.display = "";
+      }
+    }
+
+    document.querySelectorAll("[data-ship-mode]").forEach((btn) => {
+      btn.addEventListener("click", () => setShipMode(btn.dataset.shipMode));
+    });
+
+    function updatePdfSlotList(names) {
+      const labels = ["1", "2", "3", "4"].map((n, i) => {
+        const name = names[i] || "üres";
+        return `<div>${n}. ${escapeHtml(name)}</div>`;
+      });
+      sPdfSlots.innerHTML = labels.join("");
+    }
+
+    document.getElementById("s-pdfFiles").addEventListener("change", async (e) => {
+      pendingPdfFiles = [...(e.target.files || [])];
+      const names = [];
+      for (const file of pendingPdfFiles) {
+        try {
+          const bytes = await file.arrayBuffer();
+          const doc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+          const n = Math.min(doc.getPageCount(), 4 - names.length);
+          for (let i = 0; i < n; i++) names.push(`${file.name} (oldal ${i + 1})`);
+          if (names.length >= 4) break;
+        } catch {
+          names.push(`${file.name} (hiba)`);
+        }
+      }
+      while (names.length < 4) names.push(null);
+      updatePdfSlotList(names);
+      sPdfStatus.textContent = pendingPdfFiles.length
+        ? `${pendingPdfFiles.length} fájl kiválasztva — nyomd az „PDF összerakás” gombot.`
+        : "Nincs még összerakott PDF.";
+      if (pendingPdfFiles.length) await buildShipPdf();
+    });
+
+    async function collectSourcePages() {
+      const pages = [];
+      for (const file of pendingPdfFiles) {
+        const bytes = await file.arrayBuffer();
+        const doc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+        const count = doc.getPageCount();
+        for (let i = 0; i < count; i++) {
+          pages.push({ doc, index: i, label: `${file.name} #${i + 1}` });
+          if (pages.length >= 4) return pages;
+        }
+      }
+      return pages;
+    }
+
+    async function buildShipPdf() {
+      if (!pendingPdfFiles.length) {
+        sPdfStatus.textContent = "Előbb tölts fel PDF-et.";
+        return;
+      }
+
+      sApplyLayout();
+      const marginTop = Number(document.getElementById("s-marginTop").value) || 0;
+      const marginLeft = Number(document.getElementById("s-marginLeft").value) || 0;
+      const gapX = Number(document.getElementById("s-gapX").value) || 0;
+      const gapY = Number(document.getElementById("s-gapY").value) || 0;
+
+      const slotW = mmToPt(105);
+      const slotH = mmToPt(148);
+      const pageW = mmToPt(210);
+      const pageH = mmToPt(297);
+
+      const positions = [
+        { x: mmToPt(marginLeft), y: pageH - mmToPt(marginTop) - slotH },
+        { x: mmToPt(marginLeft + 105 + gapX), y: pageH - mmToPt(marginTop) - slotH },
+        { x: mmToPt(marginLeft), y: pageH - mmToPt(marginTop + 148 + gapY) - slotH },
+        { x: mmToPt(marginLeft + 105 + gapX), y: pageH - mmToPt(marginTop + 148 + gapY) - slotH },
+      ];
+
+      try {
+        const sources = await collectSourcePages();
+        updatePdfSlotList(sources.map((s) => s.label).concat([null, null, null, null]).slice(0, 4));
+
+        const out = await PDFLib.PDFDocument.create();
+        const page = out.addPage([pageW, pageH]);
+
+        for (let i = 0; i < sources.length && i < 4; i++) {
+          const { doc, index } = sources[i];
+          const [embedded] = await out.embedPdf(doc, [index]);
+          const srcW = embedded.width;
+          const srcH = embedded.height;
+          const scale = Math.min(slotW / srcW, slotH / srcH);
+          const drawW = srcW * scale;
+          const drawH = srcH * scale;
+          const pos = positions[i];
+          const x = pos.x + (slotW - drawW) / 2;
+          const y = pos.y + (slotH - drawH) / 2;
+          page.drawPage(embedded, { x, y, width: drawW, height: drawH });
+        }
+
+        shipPdfBytes = await out.save();
+        if (shipPdfUrl) URL.revokeObjectURL(shipPdfUrl);
+        shipPdfUrl = URL.createObjectURL(new Blob([shipPdfBytes], { type: "application/pdf" }));
+        sPdfPreview.src = shipPdfUrl;
+        sPdfPreview.hidden = false;
+        sSheetEl.style.display = "none";
+        setShipMode("pdf");
+        sPdfStatus.textContent = `Kész: ${sources.length} címke egy A4 lapon.`;
+      } catch (err) {
+        console.error(err);
+        sPdfStatus.textContent = "Hiba a PDF összerakásakor: " + (err.message || err);
+      }
+    }
+
+    document.getElementById("s-btnBuildPdf").addEventListener("click", buildShipPdf);
+
+    document.getElementById("s-btnDownloadPdf").addEventListener("click", () => {
+      if (!shipPdfBytes) {
+        sPdfStatus.textContent = "Előbb rakd össze a PDF-et.";
+        return;
+      }
+      const a = document.createElement("a");
+      a.href = shipPdfUrl;
+      a.download = "cimkek-4up-a6.pdf";
+      a.click();
+    });
+
+    document.getElementById("s-btnPrintPdf").addEventListener("click", () => {
+      if (!shipPdfUrl) {
+        sPdfStatus.textContent = "Előbb rakd össze a PDF-et.";
+        return;
+      }
+      const w = window.open(shipPdfUrl);
+      if (w) {
+        w.addEventListener("load", () => {
+          try { w.print(); } catch (_) {}
+        });
+      } else {
+        sPdfStatus.textContent = "A böngésző blokkolta a popupot — használd a letöltést, majd nyomtasd.";
+      }
+    });
 
     function escapeHtml(s) {
       return String(s)
@@ -890,11 +1115,6 @@ Foxpost automata
       sRenderSheet();
     }
 
-    document.getElementById("s-btnPreview").addEventListener("click", sApplyLayout);
-    document.getElementById("s-btnPrint").addEventListener("click", () => {
-      sApplyLayout();
-      window.print();
-    });
     document.getElementById("s-btnApplyBulk").addEventListener("click", () => {
       sParseBulk(document.getElementById("s-bulk").value);
     });
@@ -906,6 +1126,11 @@ Foxpost automata
       reader.readAsText(file);
       e.target.value = "";
     });
+    document.getElementById("s-btnPrintManual").addEventListener("click", () => {
+      setShipMode("manual");
+      sApplyLayout();
+      window.print();
+    });
     ["s-marginTop", "s-marginLeft", "s-gapX", "s-gapY"].forEach((id) => {
       document.getElementById(id).addEventListener("change", sApplyLayout);
     });
@@ -913,6 +1138,7 @@ Foxpost automata
     sApplyLayout();
     sRenderFields();
     sRenderSheet();
+    updatePdfSlotList([]);
   </script>
 </body>
 </html>
