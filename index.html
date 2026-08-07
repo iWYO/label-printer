@@ -258,14 +258,14 @@
       flex-shrink: 0;
     }
 
-    /* —— Brand 70×36 —— */
+    /* —— Brand 68×47 · 18/lap (3×6) —— */
     #view-brand {
-      --label-w: 70mm;
-      --label-h: 36mm;
+      --label-w: 68mm;
+      --label-h: 47mm;
       --margin-top: 4.5mm;
-      --margin-left: 0mm;
+      --margin-left: 3mm;
       --gap-x: 0mm;
-      --gap-y: 0mm;
+      --gap-y: 1.5mm;
     }
 
     #view-brand .labels {
@@ -274,7 +274,7 @@
       left: var(--margin-left);
       display: grid;
       grid-template-columns: repeat(3, var(--label-w));
-      grid-template-rows: repeat(8, var(--label-h));
+      grid-template-rows: repeat(6, var(--label-h));
       column-gap: var(--gap-x);
       row-gap: var(--gap-y);
     }
@@ -318,8 +318,8 @@
     }
 
     #view-brand .cell .qr-box {
-      width: 26mm;
-      height: 26mm;
+      width: 30mm;
+      height: 30mm;
       max-width: 100%;
       max-height: 100%;
       flex-shrink: 0;
@@ -331,8 +331,8 @@
 
     #view-brand .cell .qr-box img,
     #view-brand .cell .qr-box canvas {
-      width: 26mm !important;
-      height: 26mm !important;
+      width: 30mm !important;
+      height: 30mm !important;
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
@@ -497,7 +497,7 @@
   <nav class="topnav">
     <div class="brand">Címke nyomtató</div>
     <div class="tabs">
-      <button type="button" class="tab active" data-view="brand">Brand · 70×36 (24/lap)</button>
+      <button type="button" class="tab active" data-view="brand">Brand · 68×47 (18/lap)</button>
       <button type="button" class="tab" data-view="ship">Futár · 105×148 (4/lap)</button>
     </div>
   </nav>
@@ -506,13 +506,13 @@
   <div class="view active" id="view-brand">
     <div class="toolbar">
       <label>Felső (mm)<input id="b-marginTop" type="number" step="0.1" value="4.5" /></label>
-      <label>Bal (mm)<input id="b-marginLeft" type="number" step="0.1" value="0" /></label>
+      <label>Bal (mm)<input id="b-marginLeft" type="number" step="0.1" value="3" /></label>
       <label>Rés X (mm)<input id="b-gapX" type="number" step="0.1" value="0" /></label>
-      <label>Rés Y (mm)<input id="b-gapY" type="number" step="0.1" value="0" /></label>
-      <label>Db / lap<input id="b-count" type="number" min="1" max="24" value="24" /></label>
+      <label>Rés Y (mm)<input id="b-gapY" type="number" step="0.1" value="1.5" /></label>
+      <label>Db / lap<input id="b-count" type="number" min="1" max="18" value="18" /></label>
       <button type="button" id="b-btnApply">Alkalmaz mindre</button>
       <button type="button" class="primary" id="b-btnPrint">Nyomtatás</button>
-      <p class="hint">Brand / QR · 70×36 mm · 24 db. Sima papíron teszteld. Címkére kattintva egyedi QR/szöveg.</p>
+      <p class="hint">Brand / QR · 68×47 mm · 18 db (3×8 helyett 3×6). Sima papíron teszteld. Címkére kattintva egyedi QR/szöveg.</p>
     </div>
 
     <div class="workspace">
@@ -680,7 +680,7 @@ Rendelés #1042"></textarea>
     });
 
     /* ========== BRAND ========== */
-    const B_COUNT = 24;
+    const B_COUNT = 18;
     const brandState = {
       logoDataUrl: "",
       selected: 0,
@@ -709,7 +709,7 @@ Rendelés #1042"></textarea>
     }
 
     function bActiveCount() {
-      return Math.min(B_COUNT, Math.max(1, Number(document.getElementById("b-count").value) || 24));
+      return Math.min(B_COUNT, Math.max(1, Number(document.getElementById("b-count").value) || 18));
     }
 
     function bBuildShells() {
