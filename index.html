@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Címke nyomtató – 70×36 &amp; 105×148</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <style>
+    :root {
+      --page-w: 210mm;
+      --page-h: 297mm;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #e8e8e8;
+      color: #111;
+    }
+
+    .topnav {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: #0d0d0d;
+      color: #fff;
+      border-bottom: 1px solid #222;
+    }
+
+    .topnav .brand {
+      font-weight: 700;
+      font-size: 14px;
+      margin-right: 8px;
+      letter-spacing: 0.02em;
+    }
+
+    .topnav .tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .topnav .tab {
+      padding: 8px 12px;
+      border: 1px solid #333;
+      border-radius: 6px;
+      background: #1a1a1a;
+      color: #ddd;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .topnav .tab.active {
+      background: #7cffb2;
+      color: #111;
+      border-color: #7cffb2;
+    }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .toolbar {
+      position: sticky;
+      top: 49px;
+      z-index: 20;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      align-items: end;
+      padding: 10px 14px;
+      background: #111;
+      color: #f2f2f2;
+    }
+
+    .toolbar label {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 11px;
+      opacity: 0.9;
+    }
+
+    .toolbar input[type="number"],
+    .toolbar input[type="text"],
+    .toolbar select {
+      min-width: 70px;
+      padding: 6px 8px;
+      border: 1px solid #444;
+      border-radius: 4px;
+      background: #222;
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .toolbar button,
+    .toolbar .file-btn {
+      padding: 8px 12px;
+      border: 0;
+      border-radius: 4px;
+      background: #e8e8e8;
+      color: #111;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .toolbar button.primary { background: #7cffb2; }
+
+    .toolbar .hint {
+      flex: 1 1 200px;
+      font-size: 11px;
+      line-height: 1.35;
+      opacity: 0.7;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(300px, 400px) 1fr;
+      gap: 14px;
+      padding: 14px;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .workspace { grid-template-columns: 1fr; }
+    }
+
+    .panel,
+    .editor {
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+
+    .panel h2,
+    .editor h2 {
+      margin: 0 0 8px;
+      font-size: 14px;
+    }
+
+    .panel h3 {
+      margin: 14px 0 6px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #666;
+    }
+
+    .slots { display: grid; gap: 8px; }
+
+    .slot-row {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .slot-row span {
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .slot-row select,
+    .field input,
+    .field textarea,
+    .field select,
+    .editor input[type="text"],
+    .editor textarea {
+      width: 100%;
+      padding: 7px 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font: 13px inherit;
+    }
+
+    .field {
+      display: grid;
+      gap: 4px;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .field textarea,
+    .editor textarea {
+      min-height: 56px;
+      resize: vertical;
+    }
+
+    .layout-opts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .layout-opts label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      background: #f4f4f4;
+      padding: 6px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .logo-preview {
+      max-width: 100%;
+      max-height: 48px;
+      object-fit: contain;
+      background: #f7f7f7;
+      border-radius: 4px;
+      padding: 4px;
+    }
+
+    .muted {
+      font-size: 11px;
+      color: #666;
+      line-height: 1.35;
+    }
+
+    .editor .row {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .editor .row:last-child { border-bottom: 0; margin-bottom: 0; }
+    .editor .row strong { font-size: 12px; color: #666; }
+    .bulk { margin-top: 8px; }
+    .bulk textarea { min-height: 140px; font: 13px/1.35 ui-monospace, monospace; }
+
+    .sheet-wrap {
+      display: flex;
+      justify-content: center;
+      overflow: auto;
+      padding-bottom: 20px;
+    }
+
+    .sheet {
+      width: var(--page-w);
+      height: var(--page-h);
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,.15);
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    /* —— Brand 70×36 —— */
+    #view-brand {
+      --label-w: 70mm;
+      --label-h: 36mm;
+      --margin-top: 4.5mm;
+      --margin-left: 0mm;
+      --gap-x: 0mm;
+      --gap-y: 0mm;
+    }
+
+    #view-brand .labels {
+      position: absolute;
+      top: var(--margin-top);
+      left: var(--margin-left);
+      display: grid;
+      grid-template-columns: repeat(3, var(--label-w));
+      grid-template-rows: repeat(8, var(--label-h));
+      column-gap: var(--gap-x);
+      row-gap: var(--gap-y);
+    }
+
+    #view-brand .label {
+      width: var(--label-w);
+      height: var(--label-h);
+      padding: 2.2mm 3mm;
+      overflow: hidden;
+      border: 1px dashed #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2mm;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    #view-brand .label.selected {
+      outline: 2px solid #111;
+      outline-offset: -2px;
+    }
+
+    #view-brand .label.inactive { opacity: 0.22; }
+    #view-brand .label.dir-row { flex-direction: row; }
+    #view-brand .label.dir-col { flex-direction: column; }
+
+    #view-brand .cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    #view-brand .cell img.logo {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    #view-brand .cell canvas.qr {
+      width: 100%;
+      height: 100%;
+      max-width: 28mm;
+      max-height: 28mm;
+      object-fit: contain;
+    }
+
+    #view-brand .cell .txt {
+      font-size: 8pt;
+      font-weight: 700;
+      line-height: 1.1;
+      text-align: center;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    #view-brand .label.dir-row .cell.slot-a { flex: 0 0 28%; height: 100%; }
+    #view-brand .label.dir-row .cell.slot-b { flex: 1 1 auto; height: 100%; }
+    #view-brand .label.dir-row .cell.slot-c { flex: 0 0 28%; height: 100%; }
+    #view-brand .label.dir-col .cell { width: 100%; }
+    #view-brand .label.dir-col .cell.slot-a { flex: 0 0 auto; max-height: 40%; }
+    #view-brand .label.dir-col .cell.slot-b { flex: 1 1 auto; }
+    #view-brand .label.dir-col .cell.slot-c { flex: 0 0 auto; max-height: 40%; }
+
+    /* —— Ship 105×148 —— */
+    #view-ship {
+      --label-w: 105mm;
+      --label-h: 148mm;
+      --margin-top: 0.5mm;
+      --margin-left: 0mm;
+      --gap-x: 0mm;
+      --gap-y: 0.5mm;
+    }
+
+    #view-ship .ship-label {
+      position: absolute;
+      width: var(--label-w);
+      height: var(--label-h);
+      padding: 8mm 7mm;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 2mm;
+      border: 1px dashed #bbb;
+    }
+
+    #view-ship .ship-label:nth-child(1) {
+      top: var(--margin-top);
+      left: var(--margin-left);
+    }
+    #view-ship .ship-label:nth-child(2) {
+      top: var(--margin-top);
+      left: calc(var(--margin-left) + var(--label-w) + var(--gap-x));
+    }
+    #view-ship .ship-label:nth-child(3) {
+      top: calc(var(--margin-top) + var(--label-h) + var(--gap-y));
+      left: var(--margin-left);
+    }
+    #view-ship .ship-label:nth-child(4) {
+      top: calc(var(--margin-top) + var(--label-h) + var(--gap-y));
+      left: calc(var(--margin-left) + var(--label-w) + var(--gap-x));
+    }
+
+    #view-ship .ship-label .name {
+      font-size: 16pt;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    #view-ship .ship-label .lines {
+      font-size: 11pt;
+      line-height: 1.3;
+      white-space: pre-wrap;
+    }
+
+    #view-ship .ship-label .meta {
+      font-size: 10pt;
+      color: #333;
+      margin-top: auto;
+    }
+
+    #view-ship .ship-label.empty { opacity: 0.35; }
+
+    @media print {
+      body { background: #fff; }
+      .topnav,
+      .toolbar,
+      .panel,
+      .editor { display: none !important; }
+
+      .view { display: none !important; }
+      .view.active { display: block !important; }
+
+      .workspace {
+        display: block;
+        padding: 0;
+      }
+
+      .sheet-wrap { overflow: visible; }
+      .sheet { box-shadow: none; margin: 0; }
+
+      #view-brand .label {
+        border: none;
+        cursor: default;
+      }
+      #view-brand .label.selected { outline: none; }
+      #view-brand .label.inactive { display: none; }
+
+      #view-ship .ship-label { border: none; }
+
+      @page { size: A4; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Címke nyomtató</div>
+    <div class="tabs">
+      <button type="button" class="tab active" data-view="brand">Brand · 70×36 (24/lap)</button>
+      <button type="button" class="tab" data-view="ship">Futár · 105×148 (4/lap)</button>
+    </div>
+  </nav>
+
+  <!-- ========== BRAND 70×36 ========== -->
+  <div class="view active" id="view-brand">
+    <div class="toolbar">
+      <label>Felső (mm)<input id="b-marginTop" type="number" step="0.1" value="4.5" /></label>
+      <label>Bal (mm)<input id="b-marginLeft" type="number" step="0.1" value="0" /></label>
+      <label>Rés X (mm)<input id="b-gapX" type="number" step="0.1" value="0" /></label>
+      <label>Rés Y (mm)<input id="b-gapY" type="number" step="0.1" value="0" /></label>
+      <label>Db / lap<input id="b-count" type="number" min="1" max="24" value="24" /></label>
+      <button type="button" id="b-btnApply">Alkalmaz mindre</button>
+      <button type="button" class="primary" id="b-btnPrint">Nyomtatás</button>
+      <p class="hint">Brand / QR · 70×36 mm · 24 db. Sima papíron teszteld. Címkére kattintva egyedi QR/szöveg.</p>
+    </div>
+
+    <div class="workspace">
+      <aside class="panel">
+        <h2>Sablon</h2>
+        <p class="muted">Mezők: logo, szöveg, QR — tetszőleges kombináció.</p>
+
+        <h3>Elrendezés</h3>
+        <div class="layout-opts">
+          <label><input type="radio" name="b-dir" value="row" checked /> Sorban (↔)</label>
+          <label><input type="radio" name="b-dir" value="col" /> Egymás alatt (↕)</label>
+        </div>
+
+        <div class="slots">
+          <div class="slot-row">
+            <span>Mező A</span>
+            <select id="b-slotA">
+              <option value="none">Üres</option>
+              <option value="logo" selected>Logo</option>
+              <option value="text">Szöveg</option>
+              <option value="qr">QR kód</option>
+            </select>
+          </div>
+          <div class="slot-row">
+            <span>Mező B</span>
+            <select id="b-slotB">
+              <option value="none">Üres</option>
+              <option value="logo">Logo</option>
+              <option value="text" selected>Szöveg</option>
+              <option value="qr">QR kód</option>
+            </select>
+          </div>
+          <div class="slot-row">
+            <span>Mező C</span>
+            <select id="b-slotC">
+              <option value="none" selected>Üres</option>
+              <option value="logo">Logo</option>
+              <option value="text">Szöveg</option>
+              <option value="qr">QR kód</option>
+            </select>
+          </div>
+        </div>
+
+        <h3>Tartalom (alap)</h3>
+        <div class="field">
+          Logo kép
+          <input id="b-logoFile" type="file" accept="image/*" />
+          <img id="b-logoPreview" class="logo-preview" alt="" hidden />
+        </div>
+        <div class="field">
+          Szöveg
+          <textarea id="b-baseText" placeholder="NIGHTMARES">NIGHTMARES</textarea>
+        </div>
+        <div class="field">
+          QR tartalom (URL / szöveg)
+          <input id="b-baseQr" type="text" placeholder="https://..." value="https://nightmares.example" />
+        </div>
+        <div class="field">
+          Betűméret (pt)
+          <input id="b-fontSize" type="number" min="5" max="18" step="0.5" value="8" />
+        </div>
+
+        <h3>Kiválasztott címke (#<span id="b-selIdx">1</span>)</h3>
+        <p class="muted">Egyedi felülírás. Üres = alap sablon.</p>
+        <div class="field">
+          Egyedi szöveg
+          <textarea id="b-ovrText" placeholder="(alap szöveg)"></textarea>
+        </div>
+        <div class="field">
+          Egyedi QR
+          <input id="b-ovrQr" type="text" placeholder="(alap QR)" />
+        </div>
+        <button type="button" id="b-btnClearOvr">Egyedi törlése</button>
+      </aside>
+
+      <div class="sheet-wrap">
+        <div class="sheet">
+          <div class="labels" id="b-labels"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SHIP 105×148 ========== -->
+  <div class="view" id="view-ship">
+    <div class="toolbar">
+      <label>Felső (mm)<input id="s-marginTop" type="number" step="0.1" value="0.5" /></label>
+      <label>Bal (mm)<input id="s-marginLeft" type="number" step="0.1" value="0" /></label>
+      <label>Rés X (mm)<input id="s-gapX" type="number" step="0.1" value="0" /></label>
+      <label>Rés Y (mm)<input id="s-gapY" type="number" step="0.1" value="0.5" /></label>
+      <button type="button" id="s-btnPreview">Frissít</button>
+      <button type="button" class="primary" id="s-btnPrint">Nyomtatás</button>
+      <label class="file-btn">
+        CSV betöltés
+        <input id="s-csvFile" type="file" accept=".csv,text/csv,text/plain" hidden />
+      </label>
+      <p class="hint">Futár cím / címke · 105×148 mm (A6) · 4 db / A4. Parcely PDF-et külön is nyomtathatsz erre az etikettre.</p>
+    </div>
+
+    <div class="workspace">
+      <section class="editor">
+        <h2>Címkék (1–4) · bal felül → jobb felül → bal alul → jobb alul</h2>
+        <div id="s-fields"></div>
+
+        <div class="bulk">
+          <h2>Gyors beillesztés</h2>
+          <p class="muted" style="margin:0 0 8px;">
+            Egy címke = egy blokk, üres sorral elválasztva.<br />
+            Vagy CSV: <code>név;sor1;sor2;sor3;meta</code>
+          </p>
+          <textarea id="s-bulk" placeholder="Kovács Anna
+1052 Budapest, Váci u. 1.
++36 30 123 4567
+Rendelés #1042
+
+Nagy Péter
+9021 Győr, Baross út 10.
+Foxpost automata
+#1043"></textarea>
+          <button type="button" id="s-btnApplyBulk">Beillesztés alkalmazása</button>
+        </div>
+      </section>
+
+      <div class="sheet-wrap">
+        <div class="sheet" id="s-sheet">
+          <div class="ship-label empty" data-i="0"></div>
+          <div class="ship-label empty" data-i="1"></div>
+          <div class="ship-label empty" data-i="2"></div>
+          <div class="ship-label empty" data-i="3"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* —— Tabs —— */
+    const views = {
+      brand: document.getElementById("view-brand"),
+      ship: document.getElementById("view-ship"),
+    };
+
+    document.querySelectorAll(".topnav .tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const key = btn.dataset.view;
+        document.querySelectorAll(".topnav .tab").forEach((b) => b.classList.toggle("active", b === btn));
+        Object.entries(views).forEach(([k, el]) => el.classList.toggle("active", k === key));
+      });
+    });
+
+    /* ========== BRAND ========== */
+    const B_COUNT = 24;
+    const brandState = {
+      logoDataUrl: "",
+      selected: 0,
+      overrides: Array.from({ length: B_COUNT }, () => ({ text: "", qr: "" })),
+    };
+    const bLabelsEl = document.getElementById("b-labels");
+    const brandRoot = document.getElementById("view-brand");
+
+    function bSlotTypes() {
+      return {
+        a: document.getElementById("b-slotA").value,
+        b: document.getElementById("b-slotB").value,
+        c: document.getElementById("b-slotC").value,
+      };
+    }
+
+    function bDirection() {
+      return document.querySelector('input[name="b-dir"]:checked').value;
+    }
+
+    function bApplyLayoutVars() {
+      brandRoot.style.setProperty("--margin-top", document.getElementById("b-marginTop").value + "mm");
+      brandRoot.style.setProperty("--margin-left", document.getElementById("b-marginLeft").value + "mm");
+      brandRoot.style.setProperty("--gap-x", document.getElementById("b-gapX").value + "mm");
+      brandRoot.style.setProperty("--gap-y", document.getElementById("b-gapY").value + "mm");
+    }
+
+    function bActiveCount() {
+      return Math.min(B_COUNT, Math.max(1, Number(document.getElementById("b-count").value) || 24));
+    }
+
+    function bBuildShells() {
+      bLabelsEl.innerHTML = "";
+      for (let i = 0; i < B_COUNT; i++) {
+        const el = document.createElement("div");
+        el.className = "label";
+        el.dataset.i = String(i);
+        el.addEventListener("click", () => bSelect(i));
+        bLabelsEl.appendChild(el);
+      }
+    }
+
+    function bSelect(i) {
+      brandState.selected = i;
+      document.getElementById("b-selIdx").textContent = String(i + 1);
+      const o = brandState.overrides[i];
+      document.getElementById("b-ovrText").value = o.text || "";
+      document.getElementById("b-ovrQr").value = o.qr || "";
+      bRender();
+    }
+
+    function bContent(i) {
+      const o = brandState.overrides[i];
+      return {
+        text: (o.text || "").trim() || document.getElementById("b-baseText").value,
+        qr: (o.qr || "").trim() || document.getElementById("b-baseQr").value,
+      };
+    }
+
+    function bMakeCell(kind, content, fontPt) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      if (kind === "none") {
+        cell.style.display = "none";
+        return cell;
+      }
+      if (kind === "logo") {
+        if (brandState.logoDataUrl) {
+          const img = document.createElement("img");
+          img.className = "logo";
+          img.src = brandState.logoDataUrl;
+          img.alt = "logo";
+          cell.appendChild(img);
+        } else {
+          const t = document.createElement("div");
+          t.className = "txt";
+          t.style.opacity = "0.4";
+          t.textContent = "LOGO";
+          cell.appendChild(t);
+        }
+        return cell;
+      }
+      if (kind === "text") {
+        const t = document.createElement("div");
+        t.className = "txt";
+        t.style.fontSize = fontPt + "pt";
+        t.textContent = content.text || "";
+        cell.appendChild(t);
+        return cell;
+      }
+      if (kind === "qr") {
+        const canvas = document.createElement("canvas");
+        canvas.className = "qr";
+        cell.appendChild(canvas);
+        QRCode.toCanvas(
+          canvas,
+          content.qr || " ",
+          { width: 128, margin: 0, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } },
+          () => {}
+        );
+        return cell;
+      }
+      return cell;
+    }
+
+    function bRender() {
+      bApplyLayoutVars();
+      const slots = bSlotTypes();
+      const dir = bDirection();
+      const fontPt = document.getElementById("b-fontSize").value;
+      const n = bActiveCount();
+
+      [...bLabelsEl.children].forEach((el, i) => {
+        const content = bContent(i);
+        el.className = "label dir-" + dir;
+        if (i === brandState.selected) el.classList.add("selected");
+        if (i >= n) el.classList.add("inactive");
+        el.innerHTML = "";
+        const a = bMakeCell(slots.a, content, fontPt);
+        const b = bMakeCell(slots.b, content, fontPt);
+        const c = bMakeCell(slots.c, content, fontPt);
+        a.classList.add("slot-a");
+        b.classList.add("slot-b");
+        c.classList.add("slot-c");
+        if (slots.a !== "none") el.appendChild(a);
+        if (slots.b !== "none") el.appendChild(b);
+        if (slots.c !== "none") el.appendChild(c);
+      });
+    }
+
+    document.getElementById("b-logoFile").addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        brandState.logoDataUrl = String(reader.result || "");
+        const prev = document.getElementById("b-logoPreview");
+        prev.src = brandState.logoDataUrl;
+        prev.hidden = false;
+        bRender();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById("b-ovrText").addEventListener("input", (e) => {
+      brandState.overrides[brandState.selected].text = e.target.value;
+      bRender();
+    });
+    document.getElementById("b-ovrQr").addEventListener("input", (e) => {
+      brandState.overrides[brandState.selected].qr = e.target.value;
+      bRender();
+    });
+    document.getElementById("b-btnClearOvr").addEventListener("click", () => {
+      brandState.overrides[brandState.selected] = { text: "", qr: "" };
+      document.getElementById("b-ovrText").value = "";
+      document.getElementById("b-ovrQr").value = "";
+      bRender();
+    });
+
+    [
+      "b-slotA", "b-slotB", "b-slotC", "b-baseText", "b-baseQr", "b-fontSize",
+      "b-marginTop", "b-marginLeft", "b-gapX", "b-gapY", "b-count",
+    ].forEach((id) => {
+      document.getElementById(id).addEventListener("input", bRender);
+      document.getElementById(id).addEventListener("change", bRender);
+    });
+    document.querySelectorAll('input[name="b-dir"]').forEach((el) => {
+      el.addEventListener("change", bRender);
+    });
+
+    document.getElementById("b-btnApply").addEventListener("click", () => {
+      brandState.overrides = Array.from({ length: B_COUNT }, () => ({ text: "", qr: "" }));
+      document.getElementById("b-ovrText").value = "";
+      document.getElementById("b-ovrQr").value = "";
+      bRender();
+    });
+
+    document.getElementById("b-btnPrint").addEventListener("click", () => {
+      bRender();
+      setTimeout(() => window.print(), 120);
+    });
+
+    bBuildShells();
+    bSelect(0);
+
+    /* ========== SHIP ========== */
+    const shipLabels = Array.from({ length: 4 }, () => ({ name: "", lines: "", meta: "" }));
+    const sFieldsEl = document.getElementById("s-fields");
+    const sSheetEl = document.getElementById("s-sheet");
+    const shipRoot = document.getElementById("view-ship");
+
+    function sApplyLayout() {
+      shipRoot.style.setProperty("--margin-top", document.getElementById("s-marginTop").value + "mm");
+      shipRoot.style.setProperty("--margin-left", document.getElementById("s-marginLeft").value + "mm");
+      shipRoot.style.setProperty("--gap-x", document.getElementById("s-gapX").value + "mm");
+      shipRoot.style.setProperty("--gap-y", document.getElementById("s-gapY").value + "mm");
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function sRenderFields() {
+      sFieldsEl.innerHTML = shipLabels
+        .map(
+          (l, i) => `
+        <div class="row">
+          <strong>Címke ${i + 1}</strong>
+          <input type="text" data-i="${i}" data-k="name" placeholder="Név" value="${escapeHtml(l.name)}" />
+          <textarea data-i="${i}" data-k="lines" placeholder="Cím sorok">${escapeHtml(l.lines)}</textarea>
+          <input type="text" data-i="${i}" data-k="meta" placeholder="Telefon / rendelés / automata" value="${escapeHtml(l.meta)}" />
+        </div>`
+        )
+        .join("");
+
+      sFieldsEl.querySelectorAll("input, textarea").forEach((el) => {
+        el.addEventListener("input", () => {
+          shipLabels[Number(el.dataset.i)][el.dataset.k] = el.value;
+          sRenderSheet();
+        });
+      });
+    }
+
+    function sRenderSheet() {
+      sSheetEl.querySelectorAll(".ship-label").forEach((el, i) => {
+        const l = shipLabels[i];
+        const empty = !l.name.trim() && !l.lines.trim() && !l.meta.trim();
+        el.classList.toggle("empty", empty);
+        el.innerHTML = empty
+          ? `<div class="lines">üres</div>`
+          : `
+            <div class="name">${escapeHtml(l.name)}</div>
+            <div class="lines">${escapeHtml(l.lines)}</div>
+            ${l.meta.trim() ? `<div class="meta">${escapeHtml(l.meta)}</div>` : ""}
+          `;
+      });
+    }
+
+    function sParseBulk(text) {
+      const t = text.trim();
+      if (!t) return;
+
+      if (t.includes(";") && !t.includes("\n\n")) {
+        const rows = t.split(/\r?\n/).filter(Boolean).slice(0, 4);
+        rows.forEach((row, i) => {
+          const p = row.split(";").map((x) => x.trim());
+          shipLabels[i].name = p[0] || "";
+          shipLabels[i].lines = [p[1], p[2], p[3]].filter(Boolean).join("\n");
+          shipLabels[i].meta = p[4] || "";
+        });
+        for (let i = rows.length; i < 4; i++) shipLabels[i] = { name: "", lines: "", meta: "" };
+      } else {
+        const blocks = t.split(/\n\s*\n/).slice(0, 4);
+        blocks.forEach((block, i) => {
+          const lines = block.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+          shipLabels[i].name = lines[0] || "";
+          if (lines.length >= 3) {
+            shipLabels[i].lines = lines.slice(1, -1).join("\n");
+            shipLabels[i].meta = lines[lines.length - 1];
+          } else {
+            shipLabels[i].lines = lines.slice(1).join("\n");
+            shipLabels[i].meta = "";
+          }
+        });
+        for (let i = blocks.length; i < 4; i++) shipLabels[i] = { name: "", lines: "", meta: "" };
+      }
+      sRenderFields();
+      sRenderSheet();
+    }
+
+    function sParseCsv(text) {
+      const rows = text.replace(/^\uFEFF/, "").split(/\r?\n/).map((r) => r.trim()).filter(Boolean).slice(0, 4);
+      rows.forEach((row, i) => {
+        const parts = row.includes(";") ? row.split(";") : row.split(",");
+        const p = parts.map((x) => x.trim().replace(/^"|"$/g, ""));
+        shipLabels[i].name = p[0] || "";
+        shipLabels[i].lines = [p[1], p[2], p[3]].filter(Boolean).join("\n");
+        shipLabels[i].meta = p[4] || p[5] || "";
+      });
+      for (let i = rows.length; i < 4; i++) shipLabels[i] = { name: "", lines: "", meta: "" };
+      sRenderFields();
+      sRenderSheet();
+    }
+
+    document.getElementById("s-btnPreview").addEventListener("click", sApplyLayout);
+    document.getElementById("s-btnPrint").addEventListener("click", () => {
+      sApplyLayout();
+      window.print();
+    });
+    document.getElementById("s-btnApplyBulk").addEventListener("click", () => {
+      sParseBulk(document.getElementById("s-bulk").value);
+    });
+    document.getElementById("s-csvFile").addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => sParseCsv(String(reader.result || ""));
+      reader.readAsText(file);
+      e.target.value = "";
+    });
+    ["s-marginTop", "s-marginLeft", "s-gapX", "s-gapY"].forEach((id) => {
+      document.getElementById(id).addEventListener("change", sApplyLayout);
+    });
+
+    sApplyLayout();
+    sRenderFields();
+    sRenderSheet();
+  </script>
+</body>
+</html>
