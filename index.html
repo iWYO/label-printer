@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Címke nyomtató – 70×36 &amp; 105×148</title>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/lib/browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <style>
     :root {
@@ -317,15 +317,26 @@
       object-fit: contain;
     }
 
-    #view-brand .cell canvas.qr,
-    #view-brand .cell img.qr {
+    #view-brand .cell .qr-box {
       width: 26mm;
       height: 26mm;
       max-width: 100%;
       max-height: 100%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #view-brand .cell .qr-box img,
+    #view-brand .cell .qr-box canvas {
+      width: 26mm !important;
+      height: 26mm !important;
+      max-width: 100%;
+      max-height: 100%;
       object-fit: contain;
       image-rendering: pixelated;
-      flex-shrink: 0;
     }
 
     #view-brand .cell .txt {
@@ -761,42 +772,46 @@ Rendelés #1042"></textarea>
         return cell;
       }
       if (kind === "qr") {
-        const img = document.createElement("img");
-        img.className = "qr";
-        img.alt = "QR";
-        img.width = 128;
-        img.height = 128;
-        cell.appendChild(img);
+        const wrap = document.createElement("div");
+        wrap.className = "qr-box";
+        cell.appendChild(wrap);
 
-        const value = (content.qr || "").trim() || " ";
-        if (typeof QRCode === "undefined" || !QRCode.toDataURL) {
+        const value = (content.qr || "").trim();
+        if (!value) {
+          const t = document.createElement("div");
+          t.className = "txt";
+          t.style.opacity = "0.45";
+          t.style.fontSize = "6pt";
+          t.textContent = "QR URL?";
+          wrap.appendChild(t);
+          return cell;
+        }
+
+        if (typeof QRCode === "undefined") {
           const t = document.createElement("div");
           t.className = "txt";
           t.style.opacity = "0.5";
           t.style.fontSize = "6pt";
           t.textContent = "QR lib hiba";
-          cell.innerHTML = "";
-          cell.appendChild(t);
+          wrap.appendChild(t);
           return cell;
         }
 
-        QRCode.toDataURL(
-          value,
-          {
+        try {
+          // qrcodejs: draws into the container
+          // eslint-disable-next-line no-new
+          new QRCode(wrap, {
+            text: value,
             width: 128,
-            margin: 1,
-            errorCorrectionLevel: "M",
-            color: { dark: "#000000", light: "#ffffff" },
-          },
-          (err, url) => {
-            if (err) {
-              img.alt = "QR hiba";
-              console.error(err);
-              return;
-            }
-            img.src = url;
-          }
-        );
+            height: 128,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M,
+          });
+        } catch (err) {
+          console.error(err);
+          wrap.textContent = "QR hiba";
+        }
         return cell;
       }
       return cell;
